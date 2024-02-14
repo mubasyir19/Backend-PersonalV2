@@ -1,26 +1,100 @@
-import { Injectable } from '@nestjs/common';
+import { ConflictException, Injectable } from '@nestjs/common';
 import { CreateSkillDto } from './dto/create-skill.dto';
 import { UpdateSkillDto } from './dto/update-skill.dto';
+import { PrismaService } from 'src/prisma.service';
 
 @Injectable()
 export class SkillService {
-  create(createSkillDto: CreateSkillDto) {
-    return 'This action adds a new skill';
+  constructor(private prisma: PrismaService) {}
+
+  async create(createSkillDto: CreateSkillDto) {
+    try {
+      const checkSkill = await this.findSkill(createSkillDto.name);
+      if (checkSkill) {
+        throw new ConflictException('skill already entered');
+      }
+
+      const newSkill = await this.prisma.skill.create({ data: createSkillDto });
+
+      return {
+        message: 'success add skill',
+        data: newSkill,
+      };
+    } catch (error) {
+      throw new ConflictException('fail add data');
+    }
   }
 
-  findAll() {
-    return `This action returns all skill`;
+  async findAll() {
+    try {
+      const skills = await this.prisma.skill.findMany();
+
+      return {
+        message: 'success get all data skills',
+        data: skills,
+      };
+    } catch (error) {
+      throw new ConflictException('a problem occured');
+    }
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} skill`;
+  async findOne(id: string) {
+    try {
+      const skill = await this.prisma.skill.findFirst({
+        where: { id },
+      });
+
+      return {
+        message: 'success get data',
+        data: skill,
+      };
+    } catch (error) {
+      throw new ConflictException('fail get data');
+    }
   }
 
-  update(id: number, updateSkillDto: UpdateSkillDto) {
-    return `This action updates a #${id} skill`;
+  async findSkill(name: string) {
+    try {
+      const skill = await this.prisma.skill.findFirst({
+        where: { name },
+      });
+
+      return skill;
+    } catch (error) {
+      throw error;
+    }
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} skill`;
+  async update(id: string, updateSkillDto: UpdateSkillDto) {
+    try {
+      const updateSkill = await this.prisma.skill.update({
+        where: { id },
+        data: updateSkillDto,
+      });
+
+      return {
+        message: 'success update data skill',
+        data: updateSkill,
+      };
+    } catch (error) {
+      throw new ConflictException('failed update data');
+    }
+  }
+
+  async remove(id: string) {
+    try {
+      const skill = await this.prisma.skill.findFirst({
+        where: { id },
+      });
+
+      if (skill) {
+        await this.prisma.skill.delete({ where: { id } });
+      }
+      return {
+        message: `skill ${skill.name} has been deleted`,
+      };
+    } catch (error) {
+      throw new ConflictException('failed delete data');
+    }
   }
 }
